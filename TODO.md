@@ -6,6 +6,9 @@ Last updated: 2026-05-02 (session 2)
 
 ## Next session
 
+### status.sh — format countdown as Xh Ymin when ≥ 60 min
+In the "Next sessions today" section, `status.sh` shows `(in 209 min)`. Format durations ≥ 60 min as `(in 3h 29min)` instead. Under 60 min keeps the current `(in 42 min)` format. Change is in the for-loop at the bottom of `status.sh`.
+
 ### reconfigure.sh — loop until exit
 Wrap the entire menu in a `while true` loop so the user can change multiple settings in one run without re-entering the script. Each option executes, saves config, reloads the scheduler, then returns to the menu. Only option `0` (Exit) breaks the loop. The `Done.` summary line should print after each change, not only on exit.
 
