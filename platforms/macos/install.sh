@@ -201,6 +201,7 @@ _crow 5 "fr" "France"                                 "$([[ $_def == fr ]] && ec
 _crow 6 "pt" "Portugal"                               "$([[ $_def == pt ]] && echo true || echo false)"
 _crow 7 "ar" "Argentina"                              "$([[ $_def == ar ]] && echo true || echo false)"
 _crow 8 "mx" "Mexico / Mexico"                        "$([[ $_def == mx ]] && echo true || echo false)"
+_crow 9 "nl" "Netherlands / Nederland"                "$([[ $_def == nl ]] && echo true || echo false)"
 echo ""
 
 _country_choice=$(ask "Country" "$_def")
@@ -215,6 +216,7 @@ case "$_country_choice" in
     6|pt)      HOLIDAY_COUNTRY="pt" ;;
     7|ar)      HOLIDAY_COUNTRY="ar" ;;
     8|mx)      HOLIDAY_COUNTRY="mx" ;;
+    9|nl)      HOLIDAY_COUNTRY="nl" ;;
     *)
         if [[ -f "$PROJECT_DIR/holidays/${_country_choice}.sh" ]]; then
             HOLIDAY_COUNTRY="$_country_choice"

@@ -62,7 +62,8 @@ printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s - %s${C_RESET}\n" "Work hours:"  
 printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Session times:" "${SESSION_TIMES[*]}"
 printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Model:"         "$CLAUDE_MODEL"
 printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Weekends:"      "$([[ ${SCHEDULE_WEEKENDS:-false} == true ]] && echo Yes || echo No)"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holidays:"      "$([[ ${SCHEDULE_HOLIDAYS:-false} == true ]] && echo Yes || echo "No${HOLIDAY_COUNTRY:+ (${HOLIDAY_COUNTRY})}")"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holidays:"      "$([[ ${SCHEDULE_HOLIDAYS:-false} == true ]] && echo Yes || echo No)"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holiday country:" "${HOLIDAY_COUNTRY:-none}"
 printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s days${C_RESET}\n" "Pre-schedule:" "${SCHEDULE_DAYS_AHEAD:-$DEFAULT_SCHEDULE_DAYS_AHEAD}"
 
 echo ""
@@ -72,6 +73,7 @@ printf "  ${C_BOLD_GREEN}1)${C_RESET}  Session times\n"
 printf "  ${C_BOLD_GREEN}2)${C_RESET}  Model\n"
 printf "  ${C_BOLD_GREEN}3)${C_RESET}  Weekend / holiday / days-ahead\n"
 printf "  ${C_BOLD_GREEN}4)${C_RESET}  Work hours  ${C_DIM}(recalculates suggested session times)${C_RESET}\n"
+printf "  ${C_BOLD_GREEN}5)${C_RESET}  Holiday country\n"
 printf "  ${C_DIM}0)  Exit${C_RESET}\n"
 echo ""
 CHOICE=$(ask "Choice" "0")
@@ -155,6 +157,55 @@ case "$CHOICE" in
     fi
     ;;
 
+# ── 5: Holiday country ───────────────────────────────────────
+5)
+    echo ""
+    _crow() {
+        local num="$1" code="$2" label="$3" is_def="${4:-false}"
+        if [[ "$is_def" == "true" ]]; then
+            printf "  ${C_BOLD_GREEN}%s)${C_RESET}  ${C_BOLD}%-4s${C_RESET}  ${C_BOLD_GREEN}%s${C_RESET} ${C_DIM}(current)${C_RESET}\n" "$num" "$code" "$label"
+        else
+            printf "  ${C_DIM}%s)${C_RESET}  %-4s  %s\n" "$num" "$code" "$label"
+        fi
+    }
+    _cur="${HOLIDAY_COUNTRY:-}"
+    _crow 0 ""   "None — manage manually in config.sh"  "$([[ -z $_cur ]] && echo true || echo false)"
+    _crow 1 "br" "Brazil / Brasil"                       "$([[ $_cur == br ]] && echo true || echo false)"
+    _crow 2 "us" "United States"                         "$([[ $_cur == us ]] && echo true || echo false)"
+    _crow 3 "uk" "United Kingdom (England & Wales)"      "$([[ $_cur == uk ]] && echo true || echo false)"
+    _crow 4 "de" "Germany / Deutschland"                 "$([[ $_cur == de ]] && echo true || echo false)"
+    _crow 5 "fr" "France"                                "$([[ $_cur == fr ]] && echo true || echo false)"
+    _crow 6 "pt" "Portugal"                              "$([[ $_cur == pt ]] && echo true || echo false)"
+    _crow 7 "ar" "Argentina"                             "$([[ $_cur == ar ]] && echo true || echo false)"
+    _crow 8 "mx" "Mexico / Mexico"                       "$([[ $_cur == mx ]] && echo true || echo false)"
+    _crow 9 "nl" "Netherlands / Nederland"               "$([[ $_cur == nl ]] && echo true || echo false)"
+    echo ""
+    _cc=$(ask "Country" "${_cur:-0}")
+    case "$_cc" in
+        0|none|"") HOLIDAY_COUNTRY="" ;;
+        1|br)      HOLIDAY_COUNTRY="br" ;;
+        2|us)      HOLIDAY_COUNTRY="us" ;;
+        3|uk)      HOLIDAY_COUNTRY="uk" ;;
+        4|de)      HOLIDAY_COUNTRY="de" ;;
+        5|fr)      HOLIDAY_COUNTRY="fr" ;;
+        6|pt)      HOLIDAY_COUNTRY="pt" ;;
+        7|ar)      HOLIDAY_COUNTRY="ar" ;;
+        8|mx)      HOLIDAY_COUNTRY="mx" ;;
+        9|nl)      HOLIDAY_COUNTRY="nl" ;;
+        *)
+            if [[ -f "$SCRIPT_DIR/holidays/${_cc}.sh" ]]; then
+                HOLIDAY_COUNTRY="$_cc"
+            else
+                err "Unknown code '${_cc}'. Country unchanged."
+                exit 1
+            fi
+            ;;
+    esac
+    [[ -n "$HOLIDAY_COUNTRY" ]] \
+        && ok "Holiday country set to: $HOLIDAY_COUNTRY" \
+        || warn "No country — add dates manually to HOLIDAYS=() in config.sh"
+    ;;
+
 # ── 0: Exit ───────────────────────────────────────────────────
 *)
     echo "  Nothing changed."; exit 0
@@ -226,5 +277,5 @@ ok "Session guard reset."
 
 echo ""
 hr
-printf "  ${C_BOLD_GREEN}Done.${C_RESET}  ${C_DIM}Sessions:${C_RESET} ${C_BOLD}${SESSION_TIMES[*]}${C_RESET}  ${C_DIM}Model:${C_RESET} ${C_BOLD}${CLAUDE_MODEL}${C_RESET}\n"
+printf "  ${C_BOLD_GREEN}Done.${C_RESET}  ${C_DIM}Sessions:${C_RESET} ${C_BOLD}${SESSION_TIMES[*]}${C_RESET}  ${C_DIM}Model:${C_RESET} ${C_BOLD}${CLAUDE_MODEL}${C_RESET}  ${C_DIM}Country:${C_RESET} ${C_BOLD}${HOLIDAY_COUNTRY:-none}${C_RESET}\n"
 echo ""

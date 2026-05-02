@@ -13,6 +13,20 @@ source "$_ec_src/defaults.sh"
 if [[ ! -f "$_ec_root/config.sh" ]]; then
     printf '\033[1;33m[WARN]\033[0m  config.sh not found — regenerating from defaults.\n'
     printf '        Run: bash reconfigure.sh  to customize your settings.\n'
+
+    # Cancel any hardware wake events scheduled under the old config.
+    # The new config will have different session times (default values),
+    # so stale pmset events would fire at wrong times.
+    _tracking="$HOME/.claude-session-manager/scheduled_wakes"
+    if [[ -f "$_tracking" ]] && command -v pmset &>/dev/null; then
+        printf '\033[1;33m[WARN]\033[0m  Cancelling stale hardware wake events...\n'
+        while IFS= read -r _event; do
+            sudo pmset schedule cancel wake "$_event" 2>/dev/null || true
+        done < "$_tracking"
+        rm -f "$_tracking"
+        printf '\033[1;33m[WARN]\033[0m  Wake events cleared. Run: bash src/wake-scheduler.sh  to reschedule.\n'
+    fi
+
     cat > "$_ec_root/config.sh" <<CFG
 #!/usr/bin/env bash
 # Regenerated from defaults — run: bash reconfigure.sh to customize

@@ -1,6 +1,6 @@
 # TODO — Claude Session Manager
 
-Last updated: 2026-05-02
+Last updated: 2026-05-02 (session 2)
 
 ---
 
@@ -50,15 +50,34 @@ Last updated: 2026-05-02
 ### Test: `is_workday()` with various SCHEDULE_WEEKENDS/HOLIDAYS configs
 - Currently tested implicitly; should have explicit unit tests
 
-### `status.sh` command
-- Show: LaunchAgent loaded/paused, next session times, last session timestamp, pmset wake count
-- Planned but not implemented
+### ~~`status.sh` command~~ ✓ Done (2026-05-02)
+### ~~`reconfigure.sh` country selection~~ ✓ Done (2026-05-02)
 
 ### More country holiday files
 - Currently: br, us, uk, de, fr, pt, ar, mx
 - Most-requested: ca, au, jp, es, it, co, cl
 
 ---
+
+## Decisions made this session (2026-05-02, session 2)
+
+### Centralized defaults via `src/defaults.sh`
+All hardcoded default values (`365`, `18000`, `claude-haiku-*`, etc.) consolidated into `src/defaults.sh` as `DEFAULT_*` variables and `CLAUDE_MODEL_*` constants. Every script that needs a default now references `$DEFAULT_*` instead of a literal. Single place to change any default.
+
+### `src/ensure-config.sh` — shared guard replacing duplicated inline blocks
+Seven scripts had identical 4-line `if [[ ! -f config.sh ]]; then ... cp ... fi` blocks. Extracted into `src/ensure-config.sh`, which (a) always sources `defaults.sh`, (b) regenerates `config.sh` from a heredoc using `$DEFAULT_*` if missing, and (c) cancels stale pmset wake events from the hardware tracking file before regenerating — preventing orphan wakes that no longer match the restored config.
+
+### `resume.sh` → `unpause.sh`
+Renamed for symmetry with `pause.sh`. All references in scripts and docs updated.
+
+### `status.sh` implemented
+Shows: configuration table, runtime state (scheduler loaded/paused, last session, sudo rule), next sessions today with countdown, file paths.
+
+### `config.sh` gitignored
+User config is machine-specific and wizard-generated. Added to `.gitignore`. Added `src/config.example.sh` (sources `defaults.sh`) and `src/ensure-config.sh` as the recovery path.
+
+### WAKE_OFFSET_SECS stale fallback fixed
+`platforms/macos/wake.sh` had `${WAKE_OFFSET_SECS:-180}` (old default) in two places. Replaced with `${WAKE_OFFSET_SECS:-$DEFAULT_WAKE_OFFSET_SECS}` (30s, matching CLAUDE.md and config.sh).
 
 ## Decisions made this session (2026-05-02)
 
