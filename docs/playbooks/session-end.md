@@ -22,7 +22,7 @@ Before ending a Claude Code session, update the project documentation to reflect
    - **Diagrams (`docs/diagrams/*.md`)**: If the session changed an architecture, sequence, network, or ER diagram, update the matching Mermaid file.
    - **Schema and artifact docs**: If migrations/models changed, update `docs/schema.yml` manually. If API / admin / jobs / env / screens changed, regenerate the matching YAML via the corresponding `task` command (see project CLAUDE.md).
    - **Cross-cutting docs**: If the change is security, observability, performance, legal, or LGPD-shaped, update the corresponding doc under `docs/security/`, `docs/observability/`, `docs/performance/`, or `docs/legal/`.
-   - **Index (`docs/README.md`)**: When adding new docs, add the link with a one-line description in the correct section of the index.
+   - **Index (`docs/index.md`)**: When adding new docs, add the link with a one-line description in the correct section of the index.
    - If a new doc is needed but the content is not yet mature, create a stub with clear "TBD" markers rather than skipping it — future sessions pick up the thread.
 
 5. **Summary**: Provide a brief summary of what was updated and why, including every file touched under `docs/`.
