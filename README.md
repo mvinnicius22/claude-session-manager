@@ -1,5 +1,7 @@
 # Claude Session Manager
 
+> 🍎 **macOS only for now.** Linux and Windows are on the roadmap — [contributions welcome](#contributing).
+
 Automatically triggers Claude Code sessions at scheduled times — headless, no window required, works with the MacBook lid closed.
 
 Designed to maximize your Claude Code usage across multiple 5-hour billing windows per day.
@@ -27,7 +29,7 @@ The session script runs `claude -p "<prompt>" --model <model>` — non-interacti
 |---|---|
 | [Claude Code CLI](https://claude.ai/code) | The `claude` binary must be installed |
 | macOS 12+ | Linux support planned (see [Contributing](#contributing)) |
-| Claude Max subscription | Needed to have multiple usage windows |
+| Claude Subscription | Needed to have multiple usage windows |
 
 ---
 
@@ -45,7 +47,7 @@ The installer detects your OS and runs a 5-step wizard:
 2. **Session times** — auto-suggested based on your work hours, or custom
 3. **Model** — default is Haiku (cheapest; perfect for a short trigger prompt)
 4. **Schedule preferences** — weekends, holidays, days ahead to pre-schedule
-5. **Holiday calendar** — pick your country (`br`, `us`, `uk`, `de`, `fr`, `pt`, `ar`, `mx`)
+5. **Holiday calendar** — pick your country (`br`, `us`, `uk`, `de`, `fr`, `pt`, `ar`, `mx`, `nl`)
 
 ### What gets installed
 
@@ -77,11 +79,13 @@ Sessions are placed symmetrically: the middle session covers the core work day; 
 
 ## Configuration
 
-Edit `config.sh` directly or run the interactive wizard:
+Already ran `install.sh`? The wizard only runs once — use `reconfigure.sh` for any subsequent changes:
 
 ```bash
 bash reconfigure.sh
 ```
+
+To edit a value not covered by the menu (e.g. `INITIAL_PROMPT`), open `config.sh` directly.
 
 Options available in `reconfigure.sh`:
 1. Session times
@@ -95,7 +99,7 @@ Options available in `reconfigure.sh`:
 | `SESSION_TIMES` | auto-calculated | Array of HH:MM session start times |
 | `SESSION_MIN_GAP` | `18000` | Fallback guard gap (s). Overridden automatically when multiple sessions are configured — guard uses half the smallest inter-session gap instead. |
 | `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | Model for trigger prompt |
-| `INITIAL_PROMPT` | `oi - %time%` | Prompt sent at session start (`%time%` = current time) |
+| `INITIAL_PROMPT` | `reply: ok` | Prompt sent at session start. Minimizes output tokens — change to anything you want (`%time%` and `%date%` are expanded at runtime) |
 | `WORK_START` | `09:00` | Used by `reconfigure.sh` for time suggestions |
 | `WORK_END` | `17:00` | Used by `reconfigure.sh` for time suggestions |
 | `SCHEDULE_WEEKENDS` | `false` | `true` = fire sessions on Sat/Sun |
@@ -129,6 +133,9 @@ HOLIDAY_COUNTRY="br"   # loads holidays/br.sh
 | `pt` | Portugal |
 | `ar` | Argentina |
 | `mx` | Mexico / México |
+| `nl` | Netherlands / Nederland (\*) |
+
+> (\*) Bevrijdingsdag (May 5) is included only in lustrum years (2025, 2030…). Add `"<year>-05-05"` to `HOLIDAYS=()` for non-lustrum years if your company observes it.
 
 The country file (e.g. `holidays/br.sh`) is merged with any dates in `HOLIDAYS=()` in `config.sh`. Use `HOLIDAYS=()` for city/state/regional holidays not covered by the country file:
 
@@ -151,7 +158,7 @@ HOLIDAYS=(
 
 ## Daily workflow
 
-**The only command you need day-to-day is `bash reconfigure.sh`** — it handles session times, model, pmset wake events, LaunchAgent reload, and session guard reset in one step.
+Once installed, `install.sh` never needs to run again. **`reconfigure.sh` is the single command for everything** — it handles session times, model, wake schedule, LaunchAgent reload, and session guard reset in one step.
 
 ```bash
 # Change anything (times, model, country, weekends, days ahead)
@@ -180,29 +187,23 @@ bash reinstall.sh
 
 ## Wake schedule
 
-`pmset schedule wake` is set during `install.sh` / `reconfigure.sh` for the next `SCHEDULE_DAYS_AHEAD` workdays (default: 365). You do not need to manage it manually.
+Managed automatically — `reconfigure.sh` cancels and reschedules everything when you change settings. After each session fires, the window extends by one day on its own.
 
-After each session fires, `session.sh` extends the window by one day automatically, keeping it perpetually full (3 pmset calls per session, not 1095).
+The only time you'd touch this manually is after a long absence (wake events may have lapsed) or if you skipped the sudo step at install:
 
 ```bash
-# Manual refresh (e.g. after a long absence or new install without sudo)
-bash src/wake-scheduler.sh            # schedule next 365 workdays (requires sudo)
+bash src/wake-scheduler.sh            # reschedule (requires sudo)
 bash src/wake-scheduler.sh dry-run    # preview without applying
-bash src/wake-scheduler.sh --days 30  # override days ahead
 ```
 
-**pmset survives full shutdown** — events are written to the SMC chip, not RAM. The Mac powers on at the scheduled time even from a complete power-off.
+**pmset survives full shutdown** — events are stored in the SMC chip, not RAM. The Mac wakes even from a complete power-off.
 
-**`WAKE_OFFSET_SECS` and the sleep timer:** the offset must be shorter than your macOS system sleep timer (`pmset -g | grep "^sleep"`). With the default `sleep: 1` (1 minute), `WAKE_OFFSET_SECS=30` gives 30 seconds of margin — the LaunchAgent fires at session time, the sleep timer fires 30 seconds later.
-
-**Passwordless sudo** — set up during install or anytime:
+**Passwordless sudo** — lets `session.sh` auto-extend the rolling wake window without prompting for a password each time. Set up during install or anytime:
 
 ```bash
-bash src/setup-sudo.sh          # install rule (prompted during install wizard)
-bash src/setup-sudo.sh remove   # remove rule
+bash src/setup-sudo.sh          # configure (prompted during install wizard)
+bash src/setup-sudo.sh remove   # remove
 ```
-
-This allows `session.sh` to auto-extend the rolling wake window after each session without prompting for a password. Scope is minimal: only `pmset schedule wake` and `pmset schedule cancel wake`.
 
 ---
 
