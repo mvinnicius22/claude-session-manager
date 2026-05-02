@@ -1,0 +1,349 @@
+# Claude Session Manager
+
+Automatically triggers Claude Code sessions at scheduled times — headless, no window required, works with the MacBook lid closed.
+
+Designed to maximize your Claude Code usage across multiple 5-hour billing windows per day.
+
+---
+
+## How it works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  pmset schedule wake  →  Mac wakes at 05:29                 │
+│  LaunchAgent fires   →  src/session.sh runs at 05:30        │
+│  claude -p "oi"      →  triggers the session (headless)     │
+│  Mac sleeps again    →  (optional, AUTO_SLEEP=true)         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The session script runs `claude -p "<prompt>" --model <model>` — non-interactive mode, no terminal window, no display required. Works with the MacBook lid closed.
+
+---
+
+## Requirements
+
+| Requirement | Notes |
+|---|---|
+| [Claude Code CLI](https://claude.ai/code) | The `claude` binary must be installed |
+| macOS 12+ | Linux support planned (see [Contributing](#contributing)) |
+| Claude Max subscription | Needed to have multiple usage windows |
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/your-org/claude-session-manager
+cd claude-session-manager
+bash install.sh
+```
+
+The installer detects your OS and runs a 5-step wizard:
+
+1. **Work hours** — e.g. `09:00` to `17:00`
+2. **Session times** — auto-suggested based on your work hours, or custom
+3. **Model** — default is Haiku (cheapest; perfect for a short trigger prompt)
+4. **Schedule preferences** — weekends, holidays, days ahead to pre-schedule
+5. **Holiday calendar** — pick your country (`br`, `us`, `uk`, `de`, `fr`, `pt`, `ar`, `mx`)
+
+### What gets installed
+
+| Component | Location | Purpose |
+|---|---|---|
+| Scripts | `~/.local/share/claude-session-manager/` | TCC-safe location (avoids macOS sandbox errors) |
+| LaunchAgent | `~/Library/LaunchAgents/com.claude.session.manager.plist` | Fires at scheduled times |
+| State & logs | `~/.claude-session-manager/` | Timestamps, session log |
+
+---
+
+## Session time suggestion
+
+Given your work hours, the installer calculates the 3 optimal session start times to maximize overlap with your working day.
+
+**Example: work 09:00–17:00**
+
+```
+Session 1 starts: 05:30  →  active during work: 09:00–10:30  (1h30m)
+Session 2 starts: 10:30  →  active during work: 10:30–15:30  (5h00m)
+Session 3 starts: 15:30  →  active during work: 15:30–17:00  (1h30m)
+─────────────────────────────────────────────────────────────
+Total work coverage: 8h (entire work day)
+```
+
+Sessions are placed symmetrically: the middle session covers the core work day; the two bookends cover the edges.
+
+---
+
+## Configuration
+
+Edit `config.sh` directly or run the interactive wizard:
+
+```bash
+bash reconfigure.sh
+```
+
+Options available in `reconfigure.sh`:
+1. Work hours and session times
+2. Session times only
+3. Model only
+4. Schedule preferences (weekends, holidays, days ahead)
+
+| Variable | Default | Description |
+|---|---|---|
+| `SESSION_TIMES` | auto-calculated | Array of HH:MM session start times |
+| `SESSION_MIN_GAP` | `18000` | Fallback guard gap (s). Overridden automatically when multiple sessions are configured — guard uses half the smallest inter-session gap instead. |
+| `CLAUDE_MODEL` | `claude-haiku-4-5-20251001` | Model for trigger prompt |
+| `INITIAL_PROMPT` | `oi - %time%` | Prompt sent at session start (`%time%` = current time) |
+| `WORK_START` | `09:00` | Used by `reconfigure.sh` for time suggestions |
+| `WORK_END` | `17:00` | Used by `reconfigure.sh` for time suggestions |
+| `SCHEDULE_WEEKENDS` | `false` | `true` = fire sessions on Sat/Sun |
+| `SCHEDULE_HOLIDAYS` | `false` | `true` = fire sessions on holidays |
+| `SCHEDULE_DAYS_AHEAD` | `365` | Days ahead to pre-schedule wake events |
+| `HOLIDAY_COUNTRY` | `"br"` | Country code for holiday file (`holidays/<country>.sh`) |
+| `HOLIDAYS` | `()` | Manual holiday overrides (merged with country file) |
+| `AUTO_SLEEP` | `false` | Sleep the Mac after triggering |
+| `WAKE_OFFSET_SECS` | `30` | Seconds before session time to schedule the pmset wake. 30 s is enough for sleep-wake (~3 s); increase to 120 s if you power off completely between sessions. Must be less than your macOS system sleep timer (check: `pmset -g | grep "^sleep"`). |
+| `CLAUDE_BIN` | auto-detect | Full path to `claude` binary |
+
+---
+
+## Holiday calendars
+
+Sessions automatically skip public holidays based on your country. Set in `config.sh`:
+
+```bash
+HOLIDAY_COUNTRY="br"   # loads holidays/br.sh
+```
+
+**Supported countries:**
+
+| Code | Country |
+|---|---|
+| `br` | Brazil / Brasil |
+| `us` | United States |
+| `uk` | United Kingdom (England & Wales) |
+| `de` | Germany / Deutschland |
+| `fr` | France |
+| `pt` | Portugal |
+| `ar` | Argentina |
+| `mx` | Mexico / México |
+
+The country file (e.g. `holidays/br.sh`) is merged with any dates in `HOLIDAYS=()` in `config.sh`. Use `HOLIDAYS=()` for city/state/regional holidays not covered by the country file:
+
+```bash
+HOLIDAY_COUNTRY="br"
+
+HOLIDAYS=(
+    "2026-07-09"   # São Paulo city anniversary
+    "2026-11-02"   # dia do servidor público
+)
+```
+
+### Adding a new country
+
+1. Create `holidays/<country_code>.sh` following the same format as existing files
+2. Set `HOLIDAY_COUNTRY="<country_code>"` in `config.sh`
+3. Open a PR — your contribution helps everyone!
+
+---
+
+## Daily workflow
+
+**The only command you need day-to-day is `bash reconfigure.sh`** — it handles session times, model, pmset wake events, LaunchAgent reload, and session guard reset in one step.
+
+```bash
+# Change anything (times, model, country, weekends, days ahead)
+bash reconfigure.sh          # handles pmset + LaunchAgent + guard automatically
+
+# Check session log
+tail -f ~/.claude-session-manager/session.log
+
+# Trigger a session immediately (for testing)
+launchctl start com.claude.session.manager
+
+# Pause all sessions without uninstalling
+bash pause.sh
+
+# Resume after pause
+bash unpause.sh
+
+# Reinstall (keeps state/logs, re-runs wizard with current settings as defaults)
+bash reinstall.sh
+```
+
+---
+
+## Wake schedule
+
+`pmset schedule wake` is set during `install.sh` / `reconfigure.sh` for the next `SCHEDULE_DAYS_AHEAD` workdays (default: 365). You do not need to manage it manually.
+
+After each session fires, `session.sh` extends the window by one day automatically, keeping it perpetually full (3 pmset calls per session, not 1095).
+
+```bash
+# Manual refresh (e.g. after a long absence or new install without sudo)
+bash src/wake-scheduler.sh            # schedule next 365 workdays (requires sudo)
+bash src/wake-scheduler.sh dry-run    # preview without applying
+bash src/wake-scheduler.sh --days 30  # override days ahead
+```
+
+**pmset survives full shutdown** — events are written to the SMC chip, not RAM. The Mac powers on at the scheduled time even from a complete power-off.
+
+**`WAKE_OFFSET_SECS` and the sleep timer:** the offset must be shorter than your macOS system sleep timer (`pmset -g | grep "^sleep"`). With the default `sleep: 1` (1 minute), `WAKE_OFFSET_SECS=30` gives 30 seconds of margin — the LaunchAgent fires at session time, the sleep timer fires 30 seconds later.
+
+**Passwordless sudo** — set up during install or anytime:
+
+```bash
+bash src/setup-sudo.sh          # install rule (prompted during install wizard)
+bash src/setup-sudo.sh remove   # remove rule
+```
+
+This allows `session.sh` to auto-extend the rolling wake window after each session without prompting for a password. Scope is minimal: only `pmset schedule wake` and `pmset schedule cancel wake`.
+
+---
+
+## Pause & Resume
+
+Stop sessions temporarily without uninstalling:
+
+```bash
+bash pause.sh    # unloads LaunchAgent; Mac may still wake (harmless)
+bash unpause.sh   # reloads LaunchAgent + reschedules today's wake events
+```
+
+The paused state is stored in `~/.claude-session-manager/paused`. Even if the Mac wakes during pause, `session.sh` checks for this file and exits immediately.
+
+---
+
+## Running tests
+
+```bash
+bash tests/run_tests.sh
+```
+
+Tests are split into **common** (cross-platform) and **platform-specific**:
+
+```
+tests/
+├── common/
+│   ├── test_session_guard.sh   — guard logic (all platforms)
+│   ├── test_suggest_times.sh   — time algorithm (all platforms)
+│   └── test_claude_cli.sh      — CLI auth + headless (all platforms)
+└── platforms/
+    └── macos/
+        ├── test_dependencies.sh
+        ├── test_permissions.sh
+        ├── test_schedule.sh
+        └── test_lid_simulation.sh
+```
+
+---
+
+## Project structure
+
+```
+claude-session-manager/
+├── install.sh              ← entry point (detects platform, 5-step wizard)
+├── reinstall.sh            ← keep state/logs, re-run wizard
+├── uninstall.sh            ← remove everything
+├── pause.sh                ← stop sessions without uninstalling
+├── unpause.sh               ← restart after pause
+├── reconfigure.sh          ← change schedule/model/holidays after install
+├── config.sh               ← user config — generated by install.sh (gitignored)
+│
+├── holidays/               ← public holiday files by country
+│   ├── br.sh               ← Brazil
+│   ├── us.sh               ← United States
+│   ├── uk.sh               ← United Kingdom
+│   ├── de.sh               ← Germany
+│   ├── fr.sh               ← France
+│   ├── pt.sh               ← Portugal
+│   ├── ar.sh               ← Argentina
+│   └── mx.sh               ← Mexico
+│
+├── src/                    ← cross-platform core (no OS-specific APIs)
+│   ├── detect_platform.sh  ← OS detection
+│   ├── session.sh          ← main session trigger (checks is_workday before firing)
+│   ├── utils.sh            ← logging, guard, Claude CLI, holiday loader
+│   ├── suggest_times.sh    ← optimal time calculation
+│   ├── wake-scheduler.sh   ← macOS pmset wrapper (delegates to platforms/)
+│   ├── setup-sudo.sh       ← configure passwordless sudo for pmset
+│   └── config.example.sh   ← default values reference (copy → config.sh for manual setup)
+│
+├── platforms/
+│   ├── macos/
+│   │   ├── install.sh      ← LaunchAgent + pmset setup
+│   │   ├── uninstall.sh
+│   │   ├── scheduler.sh    ← LaunchAgent lifecycle functions
+│   │   └── wake.sh         ← pmset scheduling + workday filter
+│   ├── linux/              ← planned (see Contributing)
+│   └── windows/            ← planned
+│
+└── tests/
+    ├── run_tests.sh         ← platform-aware runner
+    ├── common/              ← cross-platform tests
+    └── platforms/macos/     ← macOS-specific tests
+```
+
+**Files in `src/` and `tests/common/` are cross-platform** — they use only standard `bash`, `date`, and the `claude` CLI. Platform-specific APIs (pmset, launchctl, systemd, rtcwake) live exclusively in `platforms/*/`.
+
+---
+
+## Uninstall
+
+```bash
+bash uninstall.sh
+```
+
+Removes the LaunchAgent, installed scripts, and optionally the state directory and logs.
+
+---
+
+## Contributing
+
+### Adding Linux support
+
+Linux needs three things:
+
+1. **Scheduler** (`platforms/linux/scheduler.sh`) — replace LaunchAgent with a systemd user timer
+2. **Wake** (`platforms/linux/wake.sh`) — replace `pmset` with `rtcwake`
+3. **Tests** (`tests/platforms/linux/`) — mirror the macOS test suite
+
+See `platforms/linux/install.sh` for the full contribution guide and equivalence table.
+
+### Adding a country's holidays
+
+1. Create `holidays/<iso2>.sh` following the format of existing files
+2. Include at least the current and next year
+3. Cite your sources (official government calendars)
+4. Open a PR!
+
+---
+
+## Troubleshooting
+
+**LaunchAgent says "Operation not permitted"**
+→ Re-run `bash install.sh` — it copies scripts to `~/.local/share/` (not Documents).
+
+**Session guard blocks triggers**
+→ The guard threshold is dynamic: half the smallest gap between configured sessions (e.g. 5h sessions → 2.5h threshold). Sessions intentionally set close together (e.g. 5 min apart) fire normally — the threshold adapts.
+→ Manual reset: `rm ~/.claude-session-manager/last_session`
+→ `reconfigure.sh` clears it automatically when you change session times.
+
+**Mac doesn't wake at scheduled times**
+→ The pmset wake is included in `install.sh` / `reconfigure.sh`. If it was skipped, run: `bash src/wake-scheduler.sh`
+→ Check your system sleep timer: `pmset -g | grep "^sleep"`. `WAKE_OFFSET_SECS` must be less than this value. Default `WAKE_OFFSET_SECS=30` requires a sleep timer of at least 1 minute.
+→ For auto-reschedule without password prompts: `bash src/setup-sudo.sh`
+
+**`claude: command not found` in LaunchAgent**
+→ Set `CLAUDE_BIN="/full/path/to/claude"` in `config.sh`. Find it: `which claude`
+
+**Sessions fire on holidays**
+→ Check `HOLIDAY_COUNTRY` is set in `config.sh` and `SCHEDULE_HOLIDAYS=false`.
+→ Verify the date is in `holidays/<country>.sh`: `grep "YYYY-MM-DD" holidays/br.sh`
+
+---
+
+## License
+
+MIT
