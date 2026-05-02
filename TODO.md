@@ -6,6 +6,9 @@ Last updated: 2026-05-02 (session 2)
 
 ## Next session
 
+### reconfigure.sh — loop until exit
+Wrap the entire menu in a `while true` loop so the user can change multiple settings in one run without re-entering the script. Each option executes, saves config, reloads the scheduler, then returns to the menu. Only option `0` (Exit) breaks the loop. The `Done.` summary line should print after each change, not only on exit.
+
 ### Linux support (high priority for open-source reach)
 - Implement `platforms/linux/install.sh` — systemd user timer + cron
 - Implement `platforms/linux/wake.sh` — `rtcwake` for hardware wake; `systemctl suspend` for sleep
