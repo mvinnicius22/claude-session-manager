@@ -196,7 +196,7 @@ bash src/wake-scheduler.sh            # reschedule (requires sudo)
 bash src/wake-scheduler.sh dry-run    # preview without applying
 ```
 
-**pmset survives full shutdown** — events are stored in the SMC chip, not RAM. The Mac wakes even from a complete power-off.
+**pmset requires sleep, not shutdown** — `pmset schedule wake` only fires from sleep state (S3). If you shut the Mac down completely, the wake event is ignored. Keep the Mac sleeping (lid closed) between sessions, not powered off.
 
 **Passwordless sudo** — lets `session.sh` auto-extend the rolling wake window without prompting for a password each time. Set up during install or anytime:
 

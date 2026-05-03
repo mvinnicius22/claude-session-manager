@@ -31,7 +31,7 @@ macOS TCC (privacy sandbox) blocks `launchd`'s `/bin/bash` from accessing `~/Doc
 - **Install / reconfigure**: `schedule_upcoming_days(N)` schedules N workdays upfront (default 365). Also cancels old events first (`cancel_our_wake_events()`).
 - **After each session fires**: `reschedule_wake_events()` adds exactly 1 day at the far end — only 3 pmset calls per session, no duplicates.
 - pmset events are tracked in `~/.claude-session-manager/scheduled_wakes` for precise uninstall cleanup.
-- pmset events are stored in SMC hardware — survive full power-off.
+- `pmset schedule wake` only fires from sleep (S3) — **not from full shutdown (S5)**. The Mac must be sleeping, not powered off. For shutdown support, `pmset schedule poweron` would be needed (not implemented).
 
 ### WAKE_OFFSET_SECS and the sleep timer
 `WAKE_OFFSET_SECS=30` (default). The Mac wakes 30 seconds before the session. **This must be less than the system sleep timer** (`pmset -g | grep "^sleep"`). With `sleep: 1` (1-minute timer), 30 s gives 30 seconds of margin before the Mac re-sleeps.

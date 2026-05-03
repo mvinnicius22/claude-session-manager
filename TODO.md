@@ -6,6 +6,13 @@ Last updated: 2026-05-02 (session 2)
 
 ## Next session
 
+### Investigate wake support from full shutdown (S5)
+`pmset schedule wake` only fires from sleep (S3). To support powering on from a complete shutdown, investigate:
+- `pmset schedule poweron` — works on Intel Macs; behavior on Apple Silicon to be confirmed
+- After a full boot, the LaunchAgent may not have loaded yet when `session.sh` fires — evaluate whether a delay or `WaitForNetworkReachability` in the plist is needed
+- After the session, `shutdown -h now` would be needed instead of `pmset sleepnow`
+- Low priority: most Mac users sleep rather than shut down
+
 ### status.sh — format countdown as Xh Ymin when ≥ 60 min
 In the "Next sessions today" section, `status.sh` shows `(in 209 min)`. Format durations ≥ 60 min as `(in 3h 29min)` instead. Under 60 min keeps the current `(in 42 min)` format. Change is in the for-loop at the bottom of `status.sh`.
 
@@ -105,8 +112,9 @@ Without canceling old events first, changing session times leaves orphan wake ev
 ### reconfigure.sh is a 4-option menu (not a full wizard)
 The 5-step wizard was wrong for reconfigure because changing one thing required going through all 5 steps. Menu lets users change only what they need. Each option writes the COMPLETE config (all values preserved).
 
-### pmset wake confirmed working on battery with lid closed
+### pmset wake confirmed working on battery with lid closed (sleep only)
 Test on 2026-05-02: session configured for 15:00, Mac on battery with lid closed, pmset fired at 14:59:30, LaunchAgent fired at 15:00:04. Confirmed end-to-end flow works without AC power.
+**Note:** `pmset schedule wake` only fires from sleep (S3). Full shutdown (S5) tested 2026-05-02 — did NOT wake. For shutdown support, `pmset schedule poweron` would be required (not implemented).
 
 ### 2026-05-01 — Dynamic session guard threshold
 Guard threshold = `min_gap_between_sessions / 2`. Sessions 5 min apart both fire. `SESSION_MIN_GAP` is only a fallback.
