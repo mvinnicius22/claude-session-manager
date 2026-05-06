@@ -9,6 +9,7 @@
 | [ADR-003](adr/003-rolling-window-pmset.md) | Rolling window for pmset scheduling | Accepted |
 | [ADR-004](adr/004-tcc-install-location.md) | TCC-safe install location | Accepted |
 | [ADR-005](adr/005-centralized-defaults.md) | Centralized default values via src/defaults.sh | Accepted |
+| [ADR-006](adr/006-minimal-headless-session-flags.md) | Minimal headless session flags (CLAUDE_EXTRA_FLAGS / CLAUDE_DISABLE_TOOLS) | Accepted |
 
 ## Playbooks
 
