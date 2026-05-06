@@ -151,10 +151,41 @@ trigger_claude_session() {
     prompt="${prompt//%time%/$(date '+%H:%M:%S')}"
     prompt="${prompt//%date%/$(date '+%Y-%m-%d')}"
 
-    log_info "Running: $bin -p \"$prompt\" --model $model"
+    # Build arg array — avoids quoting issues with empty-string args (--tools "")
+    local -a args=(-p "$prompt" --model "$model")
 
-    "$bin" -p "$prompt" --model "$model" >> "${LOG_FILE:-/tmp/claude-session.log}" 2>&1
+    # Append freeform extra flags (word-split; no empty-string args here)
+    local extra="${CLAUDE_EXTRA_FLAGS:-$DEFAULT_CLAUDE_EXTRA_FLAGS}"
+    if [[ -n "$extra" ]]; then
+        local -a _extra_arr
+        read -r -a _extra_arr <<< "$extra"
+        args+=("${_extra_arr[@]}")
+    fi
+
+    # --tools "" must be appended as two separate array elements
+    local disable_tools="${CLAUDE_DISABLE_TOOLS:-$DEFAULT_CLAUDE_DISABLE_TOOLS}"
+    [[ "$disable_tools" == "true" ]] && args+=(--tools "")
+
+    # JSON output gives us token usage metadata at no extra API cost
+    args+=(--output-format json)
+
+    log_info "Running: $bin ${args[*]}"
+
+    local raw_output
+    raw_output=$("$bin" "${args[@]}" 2>&1)
     local exit_code=$?
+
+    printf '%s\n' "$raw_output" >> "${LOG_FILE:-/tmp/claude-session.log}"
+
+    # Parse and log token usage from the JSON response (no jq needed)
+    if (( exit_code == 0 )) && [[ -n "$raw_output" ]]; then
+        local in_tok out_tok cost
+        in_tok=$(printf '%s' "$raw_output" | grep -o '"input_tokens":[0-9]*' | cut -d: -f2)
+        out_tok=$(printf '%s' "$raw_output" | grep -o '"output_tokens":[0-9]*' | cut -d: -f2)
+        cost=$(printf '%s' "$raw_output" | grep -oE '"total_cost_usd":[0-9eE.+\-]+' | cut -d: -f2)
+        [[ -n "$in_tok" ]] && log_info "Tokens: input=${in_tok} output=${out_tok} cost_usd=${cost:-n/a}"
+    fi
+
     (( exit_code != 0 )) && log_error "claude exited $exit_code — see $LOG_FILE"
     return $exit_code
 }
