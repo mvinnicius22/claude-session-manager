@@ -16,6 +16,9 @@ _wake_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$(dirname "$(dirname "$_wake_dir")")/src/defaults.sh"
 unset _wake_dir
 
+# Flag to suppress repeated sudo warnings — reset by schedule_upcoming_days() each run.
+_PMSET_SUDO_WARNED=""
+
 # ── Core: schedule a single pmset wake event ─────────────────
 # $1 = HH:MM session time
 # $2 = MM/DD/YY date string (pmset format)
@@ -48,7 +51,10 @@ _macos_schedule_wake() {
             mkdir -p "$(dirname "$tracking")"
             echo "${date_str} ${wake_time}" >> "$tracking"
         else
-            log_warn "pmset: needs sudo for $date_str $time — run: bash src/wake-scheduler.sh"
+            if [[ -z "${_PMSET_SUDO_WARNED:-}" ]]; then
+                _PMSET_SUDO_WARNED=1
+                log_warn "pmset: needs sudo — configure once: bash src/setup-sudo.sh  (then: bash src/wake-scheduler.sh)"
+            fi
         fi
     fi
 }
@@ -80,6 +86,7 @@ is_workday() {
 # Used by install.sh and reconfigure.sh to set the initial N-day window.
 # $1 = days ahead   $2 = "dry-run" | "run"
 schedule_upcoming_days() {
+    _PMSET_SUDO_WARNED=""   # reset per scheduling run
     local days="${1:-${SCHEDULE_DAYS_AHEAD:-$DEFAULT_SCHEDULE_DAYS_AHEAD}}"
     local mode="${2:-run}"
     if ! [[ "$days" =~ ^[0-9]+$ ]] || (( days == 0 )); then
@@ -126,6 +133,10 @@ schedule_upcoming_days() {
 
     if [[ "$mode" != "dry-run" ]]; then
         log_info "Scheduled: ${scheduled} workdays | Skipped: weekends=${skipped_weekend} holidays=${skipped_holiday} past_today=${skipped_past}"
+        if [[ -n "${_PMSET_SUDO_WARNED:-}" ]]; then
+            log_warn "Wake events were NOT scheduled (sudo required). Fix with: bash src/setup-sudo.sh"
+            log_warn "Then refresh: bash src/wake-scheduler.sh"
+        fi
     fi
 }
 
@@ -199,7 +210,11 @@ cancel_our_wake_events() {
             sudo pmset schedule cancel wake "$event" 2>/dev/null && \
                 cancelled=$(( cancelled + 1 )) || true
         done < "$tracking"
-        rm -f "$tracking"
+        if (( cancelled == 0 && total > 0 )); then
+            log_warn "No wake events cancelled — sudo not configured. Fix: bash src/setup-sudo.sh"
+        else
+            rm -f "$tracking"
+        fi
     else
         # Fallback: cancel all events attributed to bare 'pmset'
         # (those are always ours — macOS system events use 'com.apple.*' labels)
