@@ -231,6 +231,9 @@ CLAUDE_BIN="${CLAUDE_BIN:-}"
 
 INITIAL_PROMPT="${INITIAL_PROMPT:-${DEFAULT_INITIAL_PROMPT}}"
 
+CLAUDE_EXTRA_FLAGS="${CLAUDE_EXTRA_FLAGS:-${DEFAULT_CLAUDE_EXTRA_FLAGS}}"
+CLAUDE_DISABLE_TOOLS=${CLAUDE_DISABLE_TOOLS:-${DEFAULT_CLAUDE_DISABLE_TOOLS}}
+
 AUTO_SLEEP=${AUTO_SLEEP:-${DEFAULT_AUTO_SLEEP}}
 SLEEP_DELAY=${SLEEP_DELAY:-${DEFAULT_SLEEP_DELAY}}
 WAKE_OFFSET_SECS=${WAKE_OFFSET_SECS:-${DEFAULT_WAKE_OFFSET_SECS}}
@@ -253,7 +256,17 @@ CFG
 echo ""
 hr
 ok "config.sh updated."
-[[ -d "$INSTALL_DIR" ]] && cp "$SCRIPT_DIR/config.sh" "$INSTALL_DIR/config.sh"
+
+# Sync all scripts + config to the installed location
+if [[ -d "$INSTALL_DIR" ]]; then
+    for _dir in src platforms holidays; do
+        rm -rf "$INSTALL_DIR/$_dir"
+        cp -R "$SCRIPT_DIR/$_dir" "$INSTALL_DIR/$_dir"
+    done
+    cp "$SCRIPT_DIR/config.sh" "$INSTALL_DIR/config.sh"
+    find "$INSTALL_DIR" -name "*.sh" -exec chmod +x {} \;
+    ok "Scripts synced to $INSTALL_DIR"
+fi
 
 # ── Reload platform ───────────────────────────────────────────
 case "$PLATFORM" in
