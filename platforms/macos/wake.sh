@@ -96,7 +96,7 @@ schedule_upcoming_days() {
     local scheduled skipped_weekend skipped_holiday skipped_past
     scheduled=0; skipped_weekend=0; skipped_holiday=0; skipped_past=0
 
-    local now_min; now_min=$(( $(date '+%H') * 60 + $(date '+%M') ))
+    local now_min; now_min=$(( 10#$(date '+%H') * 60 + 10#$(date '+%M') ))
 
     for (( i=0; i<days; i++ )); do
         local ymd; ymd=$(date -v+${i}d '+%Y-%m-%d')

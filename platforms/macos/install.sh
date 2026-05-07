@@ -379,7 +379,7 @@ printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Log:"           "$STATE_DIR/session.lo
 echo ""
 
 # Warn if any session's wake time is less than 10 minutes away — too tight for pmset
-_now_min=$(( $(date '+%H') * 60 + $(date '+%M') ))
+_now_min=$(( 10#$(date '+%H') * 60 + 10#$(date '+%M') ))
 _offset_min=$(( ${WAKE_OFFSET_SECS:-$DEFAULT_WAKE_OFFSET_SECS} / 60 ))
 for _t in "${SESSION_TIMES[@]}"; do
     _sh="${_t%%:*}"; _sh="${_sh#0}"; _sh="${_sh:-0}"
