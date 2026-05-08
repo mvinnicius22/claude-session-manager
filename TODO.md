@@ -65,8 +65,8 @@ Currently tested implicitly; should have explicit unit tests for all flag combin
 ### install.sh — opt-out of work-hours inference
 Added `"Suggest session times from your work hours? [Y/n]"` at the top of Step 1. Default Y preserves the existing flow (ask hours → suggest → confirm). Answering N goes straight to custom time input. Closing note added pointing to `bash reconfigure.sh` for future changes.
 
-### reconfigure.sh — persistent menu loop
-Wrapped the entire menu in `while true`. Options 1–5 execute, write config, sync scripts, reload the scheduler, print the Done summary, then return to the menu. Option 0 exits. Unknown inputs warn and loop back without writing config.
+### reconfigure.sh — deferred apply on Finish
+Options 1–5 now only modify in-memory variables and return to the menu. The save/sync/reload cycle (write `config.sh`, sync scripts to INSTALL_DIR, reload LaunchAgent, cancel + reschedule pmset, reset session guard) runs exactly once when the user selects `0) Finish`. Selecting Finish with no pending changes exits immediately with "Nothing changed." and skips the pmset reschedule entirely (avoids ~1095 unnecessary sudo calls).
 
 ### status.sh — human-readable countdown
 Durations ≥ 60 min now display as `Xh Ymin` (e.g. `3h 29min`). Under 60 min keeps the existing `N min` format.
