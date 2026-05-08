@@ -90,6 +90,8 @@ step 1 5 "Work Hours"
 echo ""
 printf "  ${C_DIM}Used to calculate the best session start times for your schedule.${C_RESET}\n"
 echo ""
+USE_INFERENCE=$(yn "Suggest session times from your work hours?" "y")
+echo ""
 WORK_START=$(ask "Work start  (HH:MM, 24h)" "${WORK_START:-$DEFAULT_WORK_START}")
 WORK_END=$(ask   "Work end    (HH:MM, 24h)" "${WORK_END:-$DEFAULT_WORK_END}")
 
@@ -102,25 +104,44 @@ done
 # ── Step 2: Session times ─────────────────────────────────────
 step 2 5 "Session Schedule"
 echo ""
-SUGGESTED=$(suggest_session_times "$WORK_START" "$WORK_END")
-read -r S1 S2 S3 <<< "$SUGGESTED"
-printf "  ${C_DIM}Suggested for ${C_RESET}${C_BOLD}%s - %s${C_RESET}${C_DIM}:${C_RESET}\n" "$WORK_START" "$WORK_END"
-echo ""
-describe_session_overlap "$WORK_START" "$WORK_END" "$S1" "$S2" "$S3"
-echo ""
-USE_SUGGESTED=$(yn "Use these times?" "y")
 
-if [[ "$USE_SUGGESTED" == "true" ]]; then
-    SESSION_TIMES=("$S1" "$S2" "$S3")
+if [[ "$USE_INFERENCE" == "true" ]]; then
+    SUGGESTED=$(suggest_session_times "$WORK_START" "$WORK_END")
+    read -r S1 S2 S3 <<< "$SUGGESTED"
+    printf "  ${C_DIM}Suggested for ${C_RESET}${C_BOLD}%s - %s${C_RESET}${C_DIM}:${C_RESET}\n" "$WORK_START" "$WORK_END"
+    echo ""
+    describe_session_overlap "$WORK_START" "$WORK_END" "$S1" "$S2" "$S3"
+    echo ""
+    USE_SUGGESTED=$(yn "Use these times?" "y")
+    if [[ "$USE_SUGGESTED" == "true" ]]; then
+        SESSION_TIMES=("$S1" "$S2" "$S3")
+    else
+        _current="${SESSION_TIMES[*]:-$S1,$S2,$S3}"
+        _current_csv="${_current// /,}"
+        while true; do
+            CUSTOM=$(ask "Session times  (HH:MM, comma-separated, e.g. 07:00,12:00,17:00)" "$_current_csv")
+            IFS=',' read -r -a SESSION_TIMES <<< "$CUSTOM"
+            _valid=true
+            for _t in "${SESSION_TIMES[@]}"; do
+                _t="${_t// /}"
+                if ! [[ "$_t" =~ ^([01]?[0-9]|2[0-3]):[0-5][0-9]$ ]]; then
+                    err "Invalid time: '$_t' — use HH:MM with a colon, e.g. 10:20  (not 10h20)"
+                    _valid=false; break
+                fi
+            done
+            [[ "$_valid" == "true" ]] && break
+        done
+    fi
 else
-    _current="${SESSION_TIMES[*]:-$S1,$S2,$S3}"
-    _current_csv="${_current// /,}"
+    _current_csv="${SESSION_TIMES[*]:-}"
+    _current_csv="${_current_csv// /,}"
+    [[ -z "$_current_csv" ]] && _current_csv="09:00,13:00,17:00"
     while true; do
         CUSTOM=$(ask "Session times  (HH:MM, comma-separated, e.g. 07:00,12:00,17:00)" "$_current_csv")
         IFS=',' read -r -a SESSION_TIMES <<< "$CUSTOM"
         _valid=true
         for _t in "${SESSION_TIMES[@]}"; do
-            _t="${_t// /}"   # strip any spaces
+            _t="${_t// /}"
             if ! [[ "$_t" =~ ^([01]?[0-9]|2[0-3]):[0-5][0-9]$ ]]; then
                 err "Invalid time: '$_t' — use HH:MM with a colon, e.g. 10:20  (not 10h20)"
                 _valid=false; break
@@ -394,8 +415,12 @@ for _t in "${SESSION_TIMES[@]}"; do
     fi
 done
 
-printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Change settings:"  "bash reconfigure.sh"
-printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Test now:"         "launchctl start com.claude.session.manager"
-printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Run tests:"        "bash tests/run_tests.sh"
-printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Uninstall:"        "bash uninstall.sh"
+printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Test now:"   "launchctl start com.claude.session.manager"
+printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Run tests:"  "bash tests/run_tests.sh"
+printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Uninstall:"  "bash uninstall.sh"
+echo ""
+hr
+printf "  ${C_BOLD}Para qualquer alteração futura — horários, modelo, feriados — use:${C_RESET}\n"
+echo ""
+printf "  ${C_BOLD_CYAN}    bash reconfigure.sh${C_RESET}\n"
 echo ""
