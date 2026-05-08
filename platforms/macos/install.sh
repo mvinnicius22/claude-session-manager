@@ -429,3 +429,7 @@ printf "  ${C_BOLD}To change any setting later (times, model, holidays):${C_RESE
 echo ""
 printf "  ${C_BOLD_CYAN}    bash reconfigure.sh${C_RESET}\n"
 echo ""
+printf "  ${C_DIM}To watch session logs live:${C_RESET}\n"
+echo ""
+printf "  ${C_DIM}    tail -f ~/.claude-session-manager/session.log${C_RESET}\n"
+echo ""

@@ -175,15 +175,28 @@ trigger_claude_session() {
     raw_output=$("$bin" "${args[@]}" 2>&1)
     local exit_code=$?
 
-    printf '%s\n' "$raw_output" >> "${LOG_FILE:-/tmp/claude-session.log}"
+    local _log_file="${LOG_FILE:-/tmp/claude-session.log}"
+    mkdir -p "$(dirname "$_log_file")"
+    # Write JSON response to log in yellow
+    printf '\033[1;33m%s\033[0m\n' "$raw_output" >> "$_log_file"
 
     # Parse and log token usage from the JSON response (no jq needed)
+    # head -1 avoids multi-match: input_tokens appears in usage, iterations, and modelUsage
     if (( exit_code == 0 )) && [[ -n "$raw_output" ]]; then
-        local in_tok out_tok cost
-        in_tok=$(printf '%s' "$raw_output" | grep -o '"input_tokens":[0-9]*' | cut -d: -f2)
-        out_tok=$(printf '%s' "$raw_output" | grep -o '"output_tokens":[0-9]*' | cut -d: -f2)
+        local in_tok out_tok cost cost_fmt
+        in_tok=$(printf '%s' "$raw_output" | grep -o '"input_tokens":[0-9]*' | head -1 | cut -d: -f2)
+        out_tok=$(printf '%s' "$raw_output" | grep -o '"output_tokens":[0-9]*' | head -1 | cut -d: -f2)
         cost=$(printf '%s' "$raw_output" | grep -oE '"total_cost_usd":[0-9eE.+\-]+' | cut -d: -f2)
-        [[ -n "$in_tok" ]] && log_info "Tokens: input=${in_tok} output=${out_tok} cost_usd=${cost:-n/a}"
+        cost_fmt=$(printf "%.4f" "${cost:-0}" 2>/dev/null || echo "${cost:-n/a}")
+        if [[ -n "$in_tok" ]]; then
+            local ts msg
+            ts=$(date '+%Y-%m-%d %H:%M:%S')
+            msg="Tokens: input=${in_tok} output=${out_tok} cost_usd=${cost_fmt}"
+            # Write tokens line to log in green
+            printf '\033[0;32m[%s] [INFO]  %s\033[0m\n' "$ts" "$msg" >> "$_log_file"
+            # Echo to stdout with normal INFO colour
+            printf "${BLUE}[INFO]${NC}  %s\n" "$msg"
+        fi
     fi
 
     (( exit_code != 0 )) && log_error "claude exited $exit_code — see $LOG_FILE"
