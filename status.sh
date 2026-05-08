@@ -138,7 +138,14 @@ for _t in "${SESSION_TIMES[@]}"; do
     _wake_min=$(( _sess_min - ${WAKE_OFFSET_SECS:-$DEFAULT_WAKE_OFFSET_SECS} / 60 ))
     if (( _sess_min > _now_min )); then
         _mins_until=$(( _sess_min - _now_min ))
-        printf "  ${C_BOLD_GREEN}  →${C_RESET}  ${C_BOLD}%s${C_RESET}  ${C_DIM}(in %d min)${C_RESET}\n" "$_t" "$_mins_until"
+        if (( _mins_until >= 60 )); then
+            _fmt_h=$(( _mins_until / 60 ))
+            _fmt_m=$(( _mins_until % 60 ))
+            _fmt="${_fmt_h}h ${_fmt_m}min"
+        else
+            _fmt="${_mins_until} min"
+        fi
+        printf "  ${C_BOLD_GREEN}  →${C_RESET}  ${C_BOLD}%s${C_RESET}  ${C_DIM}(in %s)${C_RESET}\n" "$_t" "$_fmt"
         _found_next=true
     else
         printf "  ${C_DIM}     %s  (passed)${C_RESET}\n" "$_t"
