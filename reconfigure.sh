@@ -56,16 +56,18 @@ yn_raw() {
 # ── Header ────────────────────────────────────────────────────
 echo ""
 printf "  ${C_BOLD_CYAN}Claude Session Manager${C_RESET} ${C_DIM}— Reconfigure${C_RESET}\n"
+
+while true; do
+
+echo ""
 hr
-
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s - %s${C_RESET}\n" "Work hours:"    "$WORK_START" "$WORK_END"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Session times:" "${SESSION_TIMES[*]}"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Model:"         "$CLAUDE_MODEL"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Weekends:"      "$([[ ${SCHEDULE_WEEKENDS:-false} == true ]] && echo Yes || echo No)"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holidays:"      "$([[ ${SCHEDULE_HOLIDAYS:-false} == true ]] && echo Yes || echo No)"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s - %s${C_RESET}\n" "Work hours:"      "$WORK_START" "$WORK_END"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Session times:"   "${SESSION_TIMES[*]}"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Model:"           "$CLAUDE_MODEL"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Weekends:"        "$([[ ${SCHEDULE_WEEKENDS:-false} == true ]] && echo Yes || echo No)"
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holidays:"        "$([[ ${SCHEDULE_HOLIDAYS:-false} == true ]] && echo Yes || echo No)"
 printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s${C_RESET}\n"     "Holiday country:" "${HOLIDAY_COUNTRY:-none}"
-printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s days${C_RESET}\n" "Pre-schedule:" "${SCHEDULE_DAYS_AHEAD:-$DEFAULT_SCHEDULE_DAYS_AHEAD}"
-
+printf "  ${C_DIM}%-20s${C_RESET}  ${C_BOLD}%s days${C_RESET}\n" "Pre-schedule:"   "${SCHEDULE_DAYS_AHEAD:-$DEFAULT_SCHEDULE_DAYS_AHEAD}"
 echo ""
 hr
 echo ""
@@ -77,6 +79,8 @@ printf "  ${C_BOLD_GREEN}5)${C_RESET}  Holiday country\n"
 printf "  ${C_DIM}0)  Exit${C_RESET}\n"
 echo ""
 CHOICE=$(ask "Choice" "0")
+
+[[ "$CHOICE" == "0" ]] && { echo ""; echo "  Bye."; echo ""; break; }
 
 case "$CHOICE" in
 # ── 1: Session times ─────────────────────────────────────────
@@ -206,9 +210,8 @@ case "$CHOICE" in
         || warn "No country — add dates manually to HOLIDAYS=() in config.sh"
     ;;
 
-# ── 0: Exit ───────────────────────────────────────────────────
 *)
-    echo "  Nothing changed."; exit 0
+    warn "Unknown option '$CHOICE' — pick 0–5."; continue
     ;;
 esac
 
@@ -292,3 +295,5 @@ echo ""
 hr
 printf "  ${C_BOLD_GREEN}Done.${C_RESET}  ${C_DIM}Sessions:${C_RESET} ${C_BOLD}${SESSION_TIMES[*]}${C_RESET}  ${C_DIM}Model:${C_RESET} ${C_BOLD}${CLAUDE_MODEL}${C_RESET}  ${C_DIM}Country:${C_RESET} ${C_BOLD}${HOLIDAY_COUNTRY:-none}${C_RESET}\n"
 echo ""
+
+done
