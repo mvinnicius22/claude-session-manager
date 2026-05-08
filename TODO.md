@@ -63,13 +63,16 @@ Currently tested implicitly; should have explicit unit tests for all flag combin
 ## Decisions made this session (2026-05-08, session 4)
 
 ### install.sh — opt-out of work-hours inference
-Added `"Suggest session times from your work hours? [Y/n]"` at the top of Step 1. Default Y preserves the existing flow (ask hours → suggest → confirm). Answering N still collects `WORK_START`/`WORK_END` (needed by reconfigure option 4) but skips the suggestion block and goes straight to custom time input. Closing note added pointing to `bash reconfigure.sh` for future changes.
+Added `"Suggest session times from your work hours? [Y/n]"` at the top of Step 1. Default Y preserves the existing flow (ask hours → suggest → confirm). Answering N goes straight to custom time input. Closing note added pointing to `bash reconfigure.sh` for future changes.
 
 ### reconfigure.sh — persistent menu loop
 Wrapped the entire menu in `while true`. Options 1–5 execute, write config, sync scripts, reload the scheduler, print the Done summary, then return to the menu. Option 0 exits. Unknown inputs warn and loop back without writing config.
 
 ### status.sh — human-readable countdown
 Durations ≥ 60 min now display as `Xh Ymin` (e.g. `3h 29min`). Under 60 min keeps the existing `N min` format.
+
+### Session log: coloured output and fixed token parsing
+JSON response written to log file in yellow (ANSI); Tokens summary line written in green. Fixed multi-match bug: `input_tokens` and `output_tokens` appear three times each in the JSON (`usage`, `iterations`, `modelUsage`) — added `head -1` to take only the first match and avoid multi-line values. `cost_usd` truncated to 4 decimal places via `printf "%.4f"`. `install.sh` closing summary now includes `tail -f ~/.claude-session-manager/session.log` hint.
 
 ---
 
