@@ -122,7 +122,7 @@ claude -p "say: 'ok'" --model claude-haiku-4-5-20251001 \
   --no-session-persistence --strict-mcp-config --tools ""
 ```
 
-Typical range per call: **$0.0009 – $0.009** depending on whether the API prompt cache is warm. The first call of the day creates the cache (higher); subsequent calls within the 1-hour window reuse it (lower).
+Typical range per call: **$0.0007 – $0.0009** depending on whether the API prompt cache is warm. The first call of the day creates the cache (higher); subsequent calls within the 1-hour window reuse it (lower).
 
 > If your `INITIAL_PROMPT` needs tools or MCP, set `CLAUDE_DISABLE_TOOLS=false` and `CLAUDE_EXTRA_FLAGS=""` in `config.sh`.
 
@@ -131,8 +131,8 @@ Typical range per call: **$0.0009 – $0.009** depending on whether the API prom
 Every session appends two lines to `~/.claude-session-manager/session.log`:
 
 ```
-{"type":"result","subtype":"success","total_cost_usd":0.00090,"usage":{"input_tokens":10,...},...}
-[2026-05-08 05:30:04] [INFO]  Tokens: input=10 output=4 cost_usd=0.00090
+{"type":"result","subtype":"success","total_cost_usd":0.00081,"usage":{"input_tokens":10,...},...}
+[2026-05-08 05:30:04] [INFO]  Tokens: input=10 output=4 cost_usd=0.00081
 ```
 
 The JSON line is shown in **yellow**, the summary in **green** when viewed with `tail -f`.
