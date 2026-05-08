@@ -187,7 +187,7 @@ trigger_claude_session() {
         in_tok=$(printf '%s' "$raw_output" | grep -o '"input_tokens":[0-9]*' | head -1 | cut -d: -f2)
         out_tok=$(printf '%s' "$raw_output" | grep -o '"output_tokens":[0-9]*' | head -1 | cut -d: -f2)
         cost=$(printf '%s' "$raw_output" | grep -oE '"total_cost_usd":[0-9eE.+\-]+' | cut -d: -f2)
-        cost_fmt=$(printf "%.4f" "${cost:-0}" 2>/dev/null || echo "${cost:-n/a}")
+        cost_fmt=$(printf "%.5f" "${cost:-0}" 2>/dev/null || echo "${cost:-n/a}")
         if [[ -n "$in_tok" ]]; then
             local ts msg
             ts=$(date '+%Y-%m-%d %H:%M:%S')

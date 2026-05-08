@@ -113,6 +113,60 @@ Options available in `reconfigure.sh`:
 
 ---
 
+## Cost
+
+Each session fires one headless `claude -p` call. By default the tool is configured for minimal token usage:
+
+```bash
+claude -p "say: 'ok'" \
+  --model claude-haiku-4-5-20251001 \
+  --no-session-persistence \
+  --strict-mcp-config \
+  --tools ""
+```
+
+| Flag | Effect |
+|---|---|
+| `--no-session-persistence` | Skips writing session history to disk |
+| `--strict-mcp-config` | Ignores all user-configured MCP servers (Notion, Gmail, etc.) |
+| `--tools ""` | Removes built-in tool definitions from the system prompt |
+
+Without these flags, `claude -p` loads the full Claude Code context — tool definitions + all MCP servers — which can add 6 000–15 000 input tokens per call regardless of how short the prompt is.
+
+**Typical cost per session (Haiku, default flags):**
+
+| Tokens | Haiku price | Cost |
+|---|---|---|
+| ~300–500 input | $0.80 / MTok | ~$0.00025–$0.00040 |
+| ~5 output | $0.40 / MTok | ~$0.000002 |
+| **Total** | | **~$0.0003/session** |
+
+3 sessions/day × 30 days ≈ **$0.03/month**.
+
+In practice, **cost is negligible** — a single trigger never reaches 1% of a Pro plan session. MCP servers are not loaded, no tool definitions are sent, and the prompt itself is just a few tokens. The tool exists to maximize availability of your sessions, not to consume them.
+
+> If your `INITIAL_PROMPT` needs tools or MCP access, set `CLAUDE_DISABLE_TOOLS=false` and `CLAUDE_EXTRA_FLAGS=""` in `config.sh`. Cost will increase proportionally to the number of MCP servers configured.
+
+### Session log
+
+Every session appends two lines to `~/.claude-session-manager/session.log`:
+
+1. **JSON response** (yellow) — the full API response including usage metadata
+2. **Tokens summary** (green) — parsed from the JSON, no extra API call
+
+```
+{"type":"result","subtype":"success","total_cost_usd":0.00030,"usage":{"input_tokens":312,...},...}
+[2026-05-08 05:30:04] [INFO]  Tokens: input=312 output=4 cost_usd=0.00030
+```
+
+Watch live:
+
+```bash
+tail -f ~/.claude-session-manager/session.log
+```
+
+---
+
 ## Holiday calendars
 
 Sessions automatically skip public holidays based on your country. Set in `config.sh`:
