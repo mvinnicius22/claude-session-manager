@@ -92,14 +92,19 @@ printf "  ${C_DIM}Used to calculate the best session start times for your schedu
 echo ""
 USE_INFERENCE=$(yn "Suggest session times from your work hours?" "y")
 echo ""
-WORK_START=$(ask "Work start  (HH:MM, 24h)" "${WORK_START:-$DEFAULT_WORK_START}")
-WORK_END=$(ask   "Work end    (HH:MM, 24h)" "${WORK_END:-$DEFAULT_WORK_END}")
 
-for t in "$WORK_START" "$WORK_END"; do
-    if ! [[ "$t" =~ ^([01]?[0-9]|2[0-3]):[0-5][0-9]$ ]]; then
-        err "Invalid time: $t — use HH:MM format (e.g. 09:00)"; exit 1
-    fi
-done
+if [[ "$USE_INFERENCE" == "true" ]]; then
+    WORK_START=$(ask "Work start  (HH:MM, 24h)" "${WORK_START:-$DEFAULT_WORK_START}")
+    WORK_END=$(ask   "Work end    (HH:MM, 24h)" "${WORK_END:-$DEFAULT_WORK_END}")
+    for t in "$WORK_START" "$WORK_END"; do
+        if ! [[ "$t" =~ ^([01]?[0-9]|2[0-3]):[0-5][0-9]$ ]]; then
+            err "Invalid time: $t — use HH:MM format (e.g. 09:00)"; exit 1
+        fi
+    done
+else
+    WORK_START="${WORK_START:-$DEFAULT_WORK_START}"
+    WORK_END="${WORK_END:-$DEFAULT_WORK_END}"
+fi
 
 # ── Step 2: Session times ─────────────────────────────────────
 step 2 5 "Session Schedule"
