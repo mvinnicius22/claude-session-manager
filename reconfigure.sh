@@ -80,7 +80,7 @@ printf "  ${C_DIM}0)  Exit${C_RESET}\n"
 echo ""
 CHOICE=$(ask "Choice" "0")
 
-[[ "$CHOICE" == "0" ]] && { echo ""; echo "  Bye."; echo ""; break; }
+[[ "$CHOICE" == "0" ]] && { echo ""; echo "  Done."; echo ""; break; }
 
 case "$CHOICE" in
 # ── 1: Session times ─────────────────────────────────────────

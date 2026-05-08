@@ -420,7 +420,7 @@ printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Run tests:"  "bash tests/run_tests.sh"
 printf "  ${C_DIM}%-22s${C_RESET}  %s\n" "Uninstall:"  "bash uninstall.sh"
 echo ""
 hr
-printf "  ${C_BOLD}Para qualquer alteração futura — horários, modelo, feriados — use:${C_RESET}\n"
+printf "  ${C_BOLD}To change any setting later (times, model, holidays):${C_RESET}\n"
 echo ""
 printf "  ${C_BOLD_CYAN}    bash reconfigure.sh${C_RESET}\n"
 echo ""

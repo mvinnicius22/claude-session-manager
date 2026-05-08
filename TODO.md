@@ -1,21 +1,12 @@
 # TODO — Claude Session Manager
 
-Last updated: 2026-05-06 (session 3)
+Last updated: 2026-05-08 (session 4)
 
 ---
 
 ## Next session
 
 ### Common
-
-#### install.sh — opt-out of work-hours inference at the start of Step 1
-Add a single yes/no question at the beginning of Step 1 (Work Hours): "Suggest session times from your work hours? [Y/n]". Default is Y (current behavior: ask hours → show suggestions → confirm). If the user answers N, still ask WORK_START/WORK_END (stored in config and used by reconfigure option 4), but skip the suggestion block entirely and go straight to the custom time input prompt. No change to `reconfigure.sh` — option 1 (session times) and option 4 (work hours) already cover both paths.
-
-#### reconfigure.sh — loop until exit
-Wrap the entire menu in a `while true` loop so the user can change multiple settings in one run without re-entering the script. Each option executes, saves config, reloads the scheduler, then returns to the menu. Only option `0` (Exit) breaks the loop. The `Done.` summary line should print after each change, not only on exit.
-
-#### status.sh — format countdown as Xh Ymin when ≥ 60 min
-In the "Next sessions today" section, `status.sh` shows `(in 209 min)`. Format durations ≥ 60 min as `(in 3h 29min)` instead. Under 60 min keeps the current `(in 42 min)` format. Change is in the for-loop at the bottom of `status.sh`.
 
 #### Custom user-script hooks
 Add a `user-scripts/` folder at the project root (gitignored; ship a `user-scripts/example.sh.disabled` as documentation). After `trigger_claude_session()` succeeds, `session.sh` discovers and runs all executable `*.sh` files in the folder alphabetically. Each script runs as a subprocess (not sourced) with a configurable timeout; failures are logged but never abort the session (`|| true`). Session context is exported as env vars: `SESSION_DATE`, `SESSION_TIME`, `CLAUDE_MODEL`, `STATE_DIR`, `LOG_FILE`.
@@ -66,6 +57,19 @@ Currently tested implicitly; should have explicit unit tests for all flag combin
 - After a full boot, LaunchAgent may not be loaded yet when `session.sh` fires — evaluate `WaitForNetworkReachability` in the plist or a startup delay
 - Post-session: `shutdown -h now` instead of `pmset sleepnow`
 - Low priority: most Mac users sleep rather than shut down
+
+---
+
+## Decisions made this session (2026-05-08, session 4)
+
+### install.sh — opt-out of work-hours inference
+Added `"Suggest session times from your work hours? [Y/n]"` at the top of Step 1. Default Y preserves the existing flow (ask hours → suggest → confirm). Answering N still collects `WORK_START`/`WORK_END` (needed by reconfigure option 4) but skips the suggestion block and goes straight to custom time input. Closing note added pointing to `bash reconfigure.sh` for future changes.
+
+### reconfigure.sh — persistent menu loop
+Wrapped the entire menu in `while true`. Options 1–5 execute, write config, sync scripts, reload the scheduler, print the Done summary, then return to the menu. Option 0 exits. Unknown inputs warn and loop back without writing config.
+
+### status.sh — human-readable countdown
+Durations ≥ 60 min now display as `Xh Ymin` (e.g. `3h 29min`). Under 60 min keeps the existing `N min` format.
 
 ---
 
